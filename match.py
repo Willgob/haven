@@ -1,4 +1,4 @@
-"""A full competitive match: two players, one target, 60 seconds on the clock."""
+"""One 60 second match."""
 
 import math
 import random
@@ -23,7 +23,7 @@ class Match:
     def __init__(self, assets, sfx, mode="versus"):
         self.assets = assets
         self.sfx = sfx
-        self.mode = mode                            # "solo" (vs CPU) | "versus"
+        self.mode = mode  # "solo" or "versus"
         self.zone = pygame.Rect(TARGET_ZONE)
         mid_y = (PLAY_TOP + PLAY_BOTTOM) / 2
         self.p1 = Player("p1", P1_X, mid_y, assets)
@@ -43,11 +43,11 @@ class Match:
         self.banner_t = 0.0
         self.shake = 0.0
         self.over = False
-        self.sudden_death = False                   # tie at 0:00 -> first score wins
+        self.sudden_death = False  # tie at 0:00 -> first score wins
         self.sd_won = False
         self.winner = 0  # 1 = player 1, 2 = player 2, 0 = draw
 
-    # ----------------------------------------------------------------- helpers
+    # helpers
     def spawn_bullet(self, player):
         mx, my = player.muzzle()
         self.bullets.append(Bullet(player.pid, mx, my, player.face))
@@ -73,7 +73,7 @@ class Match:
                 x, y, random.uniform(-34, 34), random.uniform(-34, 34),
                 random.uniform(0.15, 0.35), (color, UI_MID), 1))
 
-    # ------------------------------------------------------------------ update
+    # update
     def update(self, dt, held):
         if self.over:
             return
@@ -119,7 +119,7 @@ class Match:
 
         if self.timer <= 0.0001 and not self.sudden_death:
             if self.p1.score == self.p2.score:
-                # nobody has the most points yet - keep playing until someone does
+                # tied, so keep playing until someone scores
                 self.sudden_death = True
                 self.show_banner("SUDDEN DEATH - FIRST SCORE WINS!", RED, 3.0)
                 self.sfx.play("start")
@@ -135,7 +135,7 @@ class Match:
             if point_seg_dist(target.x, target.y, bullet.px, bullet.py,
                               bullet.x, bullet.y) <= reach:
                 base_points, _label, _color = target.hit(bullet.x)
-                # banked shots pay: every wall bounce multiplies the tier
+                # bank shots pay: each wall bounce multiplies the tier
                 points = base_points * (1 + bullet.bounces)
                 scorer = self.p1 if bullet.owner == "p1" else self.p2
                 scorer.score += points
@@ -171,7 +171,7 @@ class Match:
             self.winner = 0
         self.sfx.play("win")
 
-    # -------------------------------------------------------------------- draw
+    # draw
     def draw(self, surf, t):
         sdx = sdy = 0
         if self.shake > 0.0:
@@ -205,7 +205,7 @@ class Match:
             surf.fill((52, 60, 104), (zone.right - 1 + dx, y, 1, 2))
 
     def _draw_walls(self, surf):
-        # rubber bumper walls: base strips, stitching, corner bumper pads
+        # rubber walls, stitching and corner pads
         pygame.draw.rect(surf, RUBBER_MID, (0, HUD_H, VW, 2))
         pygame.draw.rect(surf, RUBBER_DARK, (0, HUD_H + 2, VW, 1))
         pygame.draw.rect(surf, RUBBER_MID, (0, PLAY_BOTTOM + 1, VW, 2))
@@ -223,7 +223,6 @@ class Match:
         self._bumper_pad(surf, VW - 6, PLAY_BOTTOM - 2)
 
     def _bumper_pad(self, surf, x, y):
-        """Corner pad: rubber block with a gold spring rivet."""
         pygame.draw.rect(surf, RUBBER_DARK, (x, y, 4, 4))
         pygame.draw.rect(surf, RUBBER_LIGHT, (x, y, 4, 4), 1)
         pygame.draw.rect(surf, GOLD, (x + 1, y + 1, 2, 2))

@@ -1,12 +1,4 @@
-"""BOUNCE BACK - Pixel Arcade.
-
-A two-player retro arcade shooter on one shared arena. Both gunners fire at a
-bouncing energy core that shrinks and speeds up as the 60-second match runs;
-smaller targets score more points. Rendered on a 320x180 virtual screen
-scaled x4 with nearest-neighbour for a genuine 16-bit look.
-
-Run with:  python main.py
-"""
+"""BOUNCE BACK, a 2 player arcade shooter. Run with: python main.py"""
 
 import random
 
@@ -25,7 +17,7 @@ from screens import Button, draw_menu, draw_pause, draw_results
 
 
 class Game:
-    """State machine + main loop. States: menu, playing, paused, results."""
+    """Main loop and screen states."""
 
     def __init__(self):
         pygame.init()
@@ -49,7 +41,7 @@ class Game:
                                   self.sfx, self.assets["targets"])
         self.buttons = self._build_buttons()
 
-    # ---------------------------------------------------------------- setup
+    # setup
     def _build_buttons(self):
         menu = [
             Button(160, 122, 128, 18, "1P - VS CPU", GREEN, 2, "solo"),
@@ -66,7 +58,7 @@ class Game:
         ]
         return {"menu": menu, "pause": pause, "results": results}
 
-    # ------------------------------------------------------------- transitions
+    # transitions
     def start_match(self, mode=None):
         self.mode = mode or self.mode
         self.match = Match(self.assets, self.sfx, self.mode)
@@ -99,19 +91,18 @@ class Game:
             for _ in range(46)
         ]
 
-    # ---------------------------------------------------------------- music
+    # music
     def _sync_music(self):
-        """Keep the soundtrack on the right loop for whatever is happening."""
         if self.state == "menu":
             self.music.play("menu")
-        elif self.state == "playing":
+        elif self.state in ("playing", "paused"):
+            # pause leaves the in-game track running: play() no-ops when the
+            # track is unchanged, so the loop keeps going seamlessly
             self.music.play("hurry" if self.match.hurry else "game")
-        elif self.state == "paused":
-            self.music.play("pause")
         else:
             self.music.play("results")
 
-    # ------------------------------------------------------------------ events
+    # events
     def handle_event(self, event):
         if event.type == pygame.QUIT:
             self.running = False
@@ -167,7 +158,7 @@ class Game:
             elif key in (pygame.K_ESCAPE, pygame.K_m):
                 self.state = "menu"
 
-    # ------------------------------------------------------------------ update
+    # update
     def update(self, dt):
         self.t += dt
         if self.state == "menu":
@@ -185,7 +176,7 @@ class Game:
                     bit["x"] = random.uniform(0, VW)
         self._sync_music()
 
-    # -------------------------------------------------------------------- draw
+    # draw
     def draw(self):
         surf = self.virtual
         mouse = (pygame.mouse.get_pos()[0] // SCALE, pygame.mouse.get_pos()[1] // SCALE)
@@ -202,10 +193,10 @@ class Game:
         pygame.transform.scale(surf, (WIN_W, WIN_H), self.window)
         pygame.display.flip()
 
-    # --------------------------------------------------------------------- run
+    # run
     def run(self):
         while self.running:
-            dt = min(self.clock.tick(FPS) / 1000.0, 0.05)   # frame-rate independent
+            dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
             for event in pygame.event.get():
                 self.handle_event(event)
             self.update(dt)

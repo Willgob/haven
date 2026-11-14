@@ -1,34 +1,18 @@
-# haven
+# Haven Sydney Project
 
-**BOUNCE BACK – Pixel Arcade** — a two-player retro arcade shooter built with
-pygame (pygame-ce). One shared arena, one bouncing target, 60 seconds on the clock.
+## BOUNCE BACK
 
-## The game
+**BOUNCE BACK** is a two-player retro arcade shooter made with pygame-ce.
+You share an arena, chase one bouncing energy core, and have 60 seconds to
+score as many points as possible.
 
-Both players gun for the same energy core bouncing around the middle of the
-arena. It never stops moving: it ricochets off the boundaries, gets smaller and
-faster as the match progresses, and bounces back hard every time it's hit.
-Smaller targets score more — the tiny end-game core is worth 10 points a hit.
-**Banked shots pay double or triple**: a bullet that ricochets off a wall
-before it hits multiplies the tier — one bounce scores ×2 ("BANK SHOT!"), two
-bounces ×3 ("DOUBLE BANK!"). Missed shots ricochet off the back wall and come
-back around, so keep trying.
+## How it works
 
-### Winning
+The energy core is always moving. It ricochets around the arena, becoming
+smaller and faster as the match goes on. Every time someone hits it, it gets
+knocked back with a satisfying bounce.
 
-The player with the most points when the clock hits zero takes the match — a
-live `>` / `<` marker in the HUD shows who is ahead at a glance. If the scores
-are tied at 0:00, **SUDDEN DEATH** kicks in: the timer stops, the arena keeps
-running, and the first point scored wins the match, so there is always a
-winner. Results of sudden-death matches are tagged "SETTLED IN SUDDEN DEATH!".
-
-## Game modes
-
-- **1P – VS CPU** — you (blue) against a computer gunner (orange). The CPU leads
-  the target's motion but its aim wanders and gets sloppier as the match heats up.
-- **2P – VERSUS** — two players share the keyboard.
-
-Pick a mode from the main menu (click a button, or press `1` / `2`).
+The smaller the core, the more it is worth:
 
 | Target size | Points |
 | ----------- | ------ |
@@ -37,58 +21,89 @@ Pick a mode from the main menu (click a button, or press `1` / `2`).
 | Small       | 5      |
 | Tiny        | 10     |
 
-## Controls (shared keyboard)
+Shots can earn bonus points too. A bullet that bounces off a wall before
+hitting the core is a bank shot and scores double. Two wall bounces score
+triple. Missed shots keep ricocheting around the arena, so a shot that looks
+lost may still come back and save the day.
 
-| Action | Player 1 (blue, left)      | Player 2 (orange, right)     |
-| ------ | -------------------------- | ---------------------------- |
-| Move   | W / S                      | UP / DOWN                    |
-| Shoot  | SPACE (hold to auto-fire)  | ENTER (hold to auto-fire)    |
+## Winning
 
-- `ESC` / `P` — pause (the match also auto-pauses if the window loses focus)
-- Pause menu: RESUME · RESTART · MAIN MENU (ESC / R / M, or mouse)
-- Results: PLAY AGAIN · MAIN MENU (ENTER / ESC, or mouse)
+When the timer reaches zero, the player with the highest score wins. A `>` or
+`<` marker in the HUD shows who is currently ahead.
 
-## Screens & sound
+If the score is tied at the end of the match, the game goes into **SUDDEN
+DEATH**. The timer stops, the arena keeps moving, and the next point wins.
+That way, every match has a winner.
 
-Main menu (title, mode select, instructions) → 60-second match (shared arena,
-live scoreboard, countdown timer, target-difficulty readout, encouraging
-banners) → results (winner announcement, final scores, confetti, proper draw
-handling) — plus a pause overlay, all rendered in one shared arena with no
-split screen.
+## Game modes
 
-The soundtrack is procedural chiptune, generated in code at startup (no audio
-files): a bouncy menu loop, a driving gameplay loop that switches to a
-double-time "hurry" variant in the final 10 seconds, a low-pass muffled mix
-while paused, and a calm victory loop on the results screen. Sound effects are
-synthesized square/noise blips, plus cartoon-spring "boing" waves that fire
-every time a bullet ricochets or the target gets knocked back.
+- **1P – VS CPU** — Play as the blue gunner against an orange computer
+  opponent. The CPU predicts where the core is going, but its aim gets less
+  reliable as the match gets more intense.
+- **2P – VERSUS** — Two players compete on the same keyboard.
 
-The arena itself is rubber: stitched bumper walls with gold spring pads in the
-corners, and every impact — bullet ricochet or target hit — sends an expanding
-ripple ring through the wall.
+Choose a mode from the main menu by clicking a button or pressing `1` or `2`.
+
+## Controls
+
+| Action | Player 1 (blue, left) | Player 2 (orange, right) |
+| ------ | --------------------- | ------------------------ |
+| Move   | W / S                 | UP / DOWN                |
+| Shoot  | SPACE (hold to fire)  | ENTER (hold to fire)     |
+
+- `ESC` / `P` — Pause the match. The game also pauses when the window loses
+  focus.
+- Pause menu — Choose **RESUME**, **RESTART**, or **MAIN MENU** with
+  `ESC` / `R` / `M`, or click an option.
+- Results screen — Choose **PLAY AGAIN** or **MAIN MENU** with `ENTER` /
+  `ESC`, or click an option.
+
+## Screens and sound
+
+The game flows from the main menu to a 60-second match and then to a results
+screen. You will see the mode select, instructions, live scoreboard, timer,
+target difficulty, winner announcement, final scores, confetti, and proper
+draw handling. There is also a pause overlay, all inside one shared arena.
+
+The menu plays `menu.mp3`, matches play `seels.mp3`, and the results screen
+plays the `victory.mp3` fanfare once. The in-game track keeps playing while
+the match is paused, and a sped-up mix kicks in for the final 10 seconds.
+Ricochets and target hits get their own square-wave, noise, and cartoon
+spring sound effects, generated in code.
+
+The arena is designed to feel like a giant rubber bumper. It has stitched
+walls, gold spring pads in the corners, and a ripple effect whenever a bullet
+or the core hits a boundary.
 
 ## Tech notes
 
-- The whole game renders to a 320×180 virtual screen scaled ×4 with
-  nearest-neighbour blitting — sprites, text and effects are genuinely
-  pixelated, not just smooth graphics with pixel-style text.
-- All pixel art is procedural (character maps and drawing routines baked once
-  at startup), text uses a hand-built 3×5 bitmap font, and music and sound
-  effects are synthesized in code — no asset files, no extra dependencies.
-- Frame-rate independent movement (delta time with a safety clamp) and swept
-  circle-vs-segment collisions so fast bullets never tunnel through the target.
+- The game draws to a 320×180 virtual screen and scales it up by 4 using
+  nearest-neighbour scaling. Everything stays intentionally pixelated.
+- Pixel art, text, and sound effects are generated in code. Music comes from
+  `assets/`: `menu.mp3` on the main menu, `seels.mp3` looped during matches
+  (it keeps playing while the match is paused, and speeds up for the final
+  10 seconds), and
+  `victory.mp3` played once on the results screen. If a file is missing, that
+  screen falls back to the built-in chiptune loop. No extra dependencies
+  beyond pygame-ce.
+- Music credit: `menu.mp3` is "Retro Platforming" by David Fesliyan
+  (fesliyanstudios.com).
+- Movement uses delta time with a safety clamp, and swept circle-to-segment
+  collision checks stop fast bullets from passing through the core.
 
-## Run
+## Run it
 
 ```bash
 python -m venv .venv
-.venv/bin/pip install -r requirements.txt   # pygame-ce only
+.venv/bin/pip install -r requirements.txt
 .venv/bin/python main.py
 ```
 
 ## Tuning
 
-Match length, the target size/speed curve, bullet speed and ricochet rules,
-cooldowns, scoring tiers, the CPU opponent's skill (`CPU_*`) and the
-encouragement messages all live at the top of `settings.py`. Music tempo,
-patterns and mix volumes are in `music.py`.
+The main gameplay settings are collected at the top of `settings.py`. This is
+where you can change the match length, core size and speed curve, bullet speed,
+ricochet rules, cooldowns, scoring tiers, CPU skill (`CPU_*`), and the
+encouragement messages.
+
+Music tempo, patterns, and volume settings live in `music.py`.

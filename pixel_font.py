@@ -1,9 +1,4 @@
-"""Tiny 3x5 bitmap font rendered pixel-by-pixel, with a render cache.
-
-Gives the game an authentic arcade look with zero font dependencies: every
-glyph is a 3x5 pattern baked onto a small surface (then scaled with
-nearest-neighbour for big headings).
-"""
+"""Hand-made 3x5 bitmap font. No font files needed."""
 
 import pygame
 
@@ -71,7 +66,6 @@ def text_width(text, scale=1):
 
 
 def text_surface(text, color, scale=1):
-    """Build (or fetch from cache) a surface holding the given text."""
     text = text.upper()
     key = (text, color, scale)
     surf = _cache.get(key)
@@ -93,13 +87,12 @@ def text_surface(text, color, scale=1):
                     surf.fill(color, (x + col * scale, row * scale, scale, scale))
         x += 4 * scale
     _cache[key] = surf
-    if len(_cache) > 900:          # safety valve, keeps memory flat
+    if len(_cache) > 900:          # don't let the cache grow forever
         _cache.clear()
     return surf
 
 
 def draw_text(surf, text, pos, color, scale=1, align="left"):
-    """Draw text with a top-left / centered / right-aligned x anchor."""
     ts = text_surface(text, color, scale)
     x, y = pos
     if align == "center":

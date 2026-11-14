@@ -1,10 +1,4 @@
-"""Tiny synthesized retro sound effects - no audio files or extra libraries.
-
-All sounds are generated once as raw 16-bit PCM arrays (square waves, noise
-bursts and a little win jingle) and wrapped in pygame mixer Sounds. If the
-audio device cannot be initialised (e.g. headless environments) the class
-silently degrades to a no-op so the game never crashes on sound.
-"""
+"""Sound effects, generated once as raw PCM. No audio files."""
 
 import array
 import math
@@ -81,7 +75,7 @@ def _jingle():
 
 
 class Sfx:
-    """Retro blips and boings: shoot, hit, wall boings, tick, win jingle."""
+    """Blips and boings. Goes quiet if the audio device is missing."""
 
     def __init__(self):
         self.enabled = False
@@ -97,7 +91,7 @@ class Sfx:
             "hit": _mix(_noise(150, vol=0.3), _square(280, 940, 120, vol=0.2)),
             "wall": _mix(_noise(40, vol=0.07)),
             "bounce": _mix(_square(180, 160, 40, vol=0.06)),
-            # rubber wall boings - two pitches so repeats don't sound canned
+            # two pitches so repeats don't sound canned
             "boing": [_boing(560, 150, 150, 30.0, vol=0.11),
                       _boing(470, 130, 165, 24.0, vol=0.11)],
             "boing_low": _boing(300, 60, 260, 18.0, vol=0.16),

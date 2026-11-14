@@ -1,4 +1,4 @@
-"""Game entities: players, bullets, the bouncing target, particles, popups."""
+"""Players, bullets, the target and the little effects."""
 
 import math
 import random
@@ -77,7 +77,7 @@ class Player:
             self.fire(match)
 
     def update_cpu(self, dt, match):
-        """Solo mode opponent: leads the target's motion with a wandering aim."""
+        """1P opponent: aims where the target will be, badly."""
         target = match.target
         dx = max(30.0, abs(target.x - self.x))
         travel = dx / BULLET_SPEED
@@ -92,7 +92,7 @@ class Player:
         self.aim_t -= dt
         if self.aim_t <= 0.0:
             self.aim_t = random.uniform(0.35, 0.9)
-            # the faster the match gets, the sloppier the CPU's aim becomes
+            # aim gets sloppier as the match goes on
             pressure = 1.0 + match.elapsed / 40.0
             if random.random() < CPU_LAPSE:
                 span = CPU_AIM_ERROR * 3 * pressure
@@ -114,7 +114,7 @@ class Player:
         px = int(round(self.x)) - 5 + dx - shift
         py = int(round(self.y)) - 6 + dy - bob
         surf.blit(frame, (px, py))
-        # gun barrel bolted to the body, pointing at the centre
+        # gun
         gx = int(round(self.x)) - shift
         gy = int(round(self.y)) + 1 + dy
         x_edge = gx + self.face * 4
@@ -122,7 +122,7 @@ class Player:
         pygame.draw.rect(surf, self.colors["metal"], (left, gy, GUN_LEN, 2))
         tip_x = gx + self.face * (4 + GUN_LEN - 1)
         pygame.draw.rect(surf, self.colors["light"], (tip_x, gy, 1, 2))
-        # muzzle flash (big burst first, small sparkle after)
+        # muzzle flash
         if self.recoil > 0.045:
             if self.recoil > 0.075:
                 flash, off = self.assets["flash_big"], 2
@@ -178,8 +178,7 @@ class Bullet:
 
 
 class Target:
-    """The shared target: bounces around the central zone, shrinks and speeds
-    up as the match progresses, and bounces back hard when it gets hit."""
+    """The bouncing core both players shoot at."""
 
     def __init__(self, zone, size_fn, speed_fn, sfx=None, target_frames=None):
         self.zone = zone
@@ -250,7 +249,7 @@ class Target:
             self._rotate(random.uniform(-0.6, 0.6))
 
     def hit(self, bullet_x):
-        """Award points and bounce the target away from the incoming bullet."""
+        """Bounce away from the shot, return the points."""
         points, label, color = tier_for_size(self.size)
         away = 1.0 if self.x >= bullet_x else -1.0
         speed = self.base_speed
@@ -273,7 +272,7 @@ class Target:
         oy = int(round(self.y)) - (size // 2 + 2) + dy
         surf.blit(frame, (ox, oy))
         if size >= 8 and self.flash <= 0.0:
-            # a little pupil that looks where it is going
+            # pupil looks where it's headed
             speed = math.hypot(self.vx, self.vy) or 1.0
             px = int(round(self.x + self.vx / speed * size * 0.18))
             py = int(round(self.y + self.vy / speed * size * 0.18))
@@ -330,7 +329,7 @@ class ScorePop:
 
 
 class Ripple:
-    """Expanding diamond ring where something thumps the rubber walls."""
+    """Impact ring on the rubber walls."""
 
     __slots__ = ("x", "y", "life", "max_life", "colors")
 

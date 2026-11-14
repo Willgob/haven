@@ -14,6 +14,7 @@ Tracks:
 
 import array
 import math
+import os
 import random
 
 import pygame
@@ -238,6 +239,47 @@ def _build_results():
 # ---------------------------------------------------------------------- mixer
 TRACK_VOLUMES = {"menu": 0.32, "game": 0.40, "hurry": 0.42, "pause": 0.26, "results": 0.30}
 
+# In-game music file (looped during matches). If it is missing or cannot be
+# decoded, the game quietly falls back to the built-in chiptune loop.
+INGAME_MP3 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "seels.mp3")
+INGAME_VOLUME = 0.30          # the mp3 is mastered much louder than the synth loops
+HURRY_SPEED = 1.12            # final 10s: same song played a bit faster / higher
+
+# Other mp3 tracks: name -> (file in assets/, volume, loops). loops=-1 repeats
+# forever, 0 plays once. A missing file just keeps the built-in chiptune track.
+_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+FILE_TRACKS = {
+    "menu": ("menu.mp3", 0.28, -1),          # main menu: Retro Platforming
+    "results": ("victory.mp3", 0.55, 0),     # results screen: victory fanfare, once
+}
+TRACK_LOOPS = {}
+
+
+def _resample(data, speed):
+    """Linear-interpolation resample of mono 16-bit PCM; speed > 1 = faster + higher."""
+    n = int(len(data) / speed)
+    out = array.array("h", bytes(2 * n))
+    last = len(data) - 1
+    for i in range(n):
+        pos = i * speed
+        j = int(pos)
+        a = data[j]
+        b = data[j + 1 if j < last else last]
+        out[i] = int(a + (b - a) * (pos - j))
+    return out
+
+
+def _load_ingame_pcm():
+    """Decode the in-game mp3 via the mixer; returns (Sound, mono 16-bit PCM or None)."""
+    if not os.path.isfile(INGAME_MP3):
+        return None, None
+    sound = pygame.mixer.Sound(INGAME_MP3)
+    _freq, size, channels = pygame.mixer.get_init()
+    pcm = None
+    if size == -16 and channels == 1:         # processing below assumes mono 16-bit
+        pcm = array.array("h", sound.get_raw())
+    return sound, pcm
+
 
 class Music:
     """Looping chiptune tracks on a reserved mixer channel."""
@@ -260,10 +302,42 @@ class Music:
                 "pause": pygame.mixer.Sound(buffer=_lowpass(game_buf).tobytes()),
                 "results": pygame.mixer.Sound(buffer=_render_track(*_build_results()).tobytes()),
             }
+            self._use_ingame_mp3()
+            self._use_file_tracks()
             self.enabled = True
         except Exception:
             self.enabled = False
             self.tracks = {}
+
+    def _use_ingame_mp3(self):
+        """Swap the match tracks for the mp3 (plus muffled pause / fast hurry mixes)."""
+        try:
+            sound, pcm = _load_ingame_pcm()
+            if sound is None:
+                return                            # no file: keep the chiptune loops
+            self.tracks["game"] = sound
+            if pcm is not None:
+                self.tracks["pause"] = pygame.mixer.Sound(buffer=_lowpass(pcm).tobytes())
+                self.tracks["hurry"] = pygame.mixer.Sound(
+                    buffer=_resample(pcm, HURRY_SPEED).tobytes())
+            TRACK_VOLUMES["game"] = INGAME_VOLUME
+            TRACK_VOLUMES["hurry"] = INGAME_VOLUME + 0.03
+            TRACK_VOLUMES["pause"] = INGAME_VOLUME * 0.7
+        except Exception:
+            pass                                  # any problem: chiptune stays in place
+
+    def _use_file_tracks(self):
+        """Swap in the menu / victory mp3s; each one falls back on its own."""
+        for name, (filename, volume, loops) in FILE_TRACKS.items():
+            path = os.path.join(_ASSETS, filename)
+            try:
+                if not os.path.isfile(path):
+                    continue
+                self.tracks[name] = pygame.mixer.Sound(path)
+                TRACK_VOLUMES[name] = volume
+                TRACK_LOOPS[name] = loops
+            except Exception:
+                pass                              # keep the chiptune for this track
 
     def play(self, name, fade_ms=90):
         """Switch loops smoothly; no-ops when the requested track is already on."""
@@ -274,7 +348,7 @@ class Music:
             return
         self.channel.fadeout(130)
         self.channel.set_volume(TRACK_VOLUMES.get(name, 0.35))
-        self.channel.play(sound, loops=-1, fade_ms=fade_ms)
+        self.channel.play(sound, loops=TRACK_LOOPS.get(name, -1), fade_ms=fade_ms)
         self.current = name
 
     def stop(self, fade_ms=250):

@@ -1,8 +1,4 @@
-"""Procedural pixel-art assets for BOUNCE BACK.
-
-Every sprite is baked once at startup from small character maps / drawing
-routines: no image files needed, no per-frame surface creation.
-"""
+"""All sprites are drawn in code once at startup. No image files."""
 
 import math
 import random
@@ -16,7 +12,7 @@ from settings import (
 
 
 def _sheet(rows, palette):
-    """Bake a character map (tuple of strings) into a transparent surface."""
+    """Turn rows of chars into a transparent surface."""
     width = len(rows[0])
     surf = pygame.Surface((width, len(rows)), pygame.SRCALPHA)
     for y, row in enumerate(rows):
@@ -27,9 +23,7 @@ def _sheet(rows, palette):
     return surf
 
 
-# --------------------------------------------------------------------------
-# Player gunners - chunky 10x13 sprites with helmet, visor and blinking antenna
-# --------------------------------------------------------------------------
+# players (10x13, helmet + visor + blinking antenna)
 _PLAYER_TOP = (
     "....ol....",
     "...oooo...",
@@ -93,9 +87,7 @@ def _build_bullets():
     return bullets
 
 
-# --------------------------------------------------------------------------
-# Target - an animated pixel "energy core" octagon in many sizes
-# --------------------------------------------------------------------------
+# the core, drawn as an octagon in every size 4-18
 def _build_targets():
     targets = {}
     for diameter in range(4, 19):
@@ -135,9 +127,7 @@ def _build_targets():
     return targets
 
 
-# --------------------------------------------------------------------------
-# Background - retro night skyline with lit windows and a starfield
-# --------------------------------------------------------------------------
+# background: night skyline + stars
 def _build_background():
     rng = random.Random(7)
     surf = pygame.Surface((VW, VH))

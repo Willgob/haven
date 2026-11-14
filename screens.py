@@ -1,4 +1,4 @@
-"""UI screens: pixel buttons, main menu, pause overlay and results screen."""
+"""Menu, pause and results screens."""
 
 import math
 
@@ -12,7 +12,7 @@ from pixel_font import draw_text, text_width
 
 
 class Button:
-    """A chunky pixel button with hover highlight; clickable with the mouse."""
+    """Clickable pixel button."""
 
     def __init__(self, cx, cy, w, h, label, accent, scale=2, action=None):
         self.rect = pygame.Rect(int(cx - w / 2), int(cy - h / 2), int(w), int(h))
@@ -31,7 +31,7 @@ class Button:
         draw_text(surf, self.label, (self.rect.centerx, y), color, self.scale, "center")
 
 
-# --------------------------------------------------------------------- menu
+# menu
 def draw_menu(surf, assets, t, demo_target, buttons, mouse):
     surf.blit(assets["background"], (0, 0))
     for i, (x, y, _c) in enumerate(assets["stars"]):
@@ -68,7 +68,7 @@ def draw_menu(surf, assets, t, demo_target, buttons, mouse):
     draw_text(surf, "ESC QUITS", (VW // 2, 168), GRAY, 1, "center")
 
 
-# --------------------------------------------------------------------- pause
+# pause
 def draw_pause(surf, match, t, buttons, mouse):
     match.draw(surf, t)
     dim = pygame.Surface((VW, VH), pygame.SRCALPHA)
@@ -84,7 +84,7 @@ def draw_pause(surf, match, t, buttons, mouse):
     draw_text(surf, "ESC RESUME - R RESTART - M MENU", (VW // 2, 144), GRAY, 1, "center")
 
 
-# ------------------------------------------------------------------- results
+# results
 def draw_results(surf, match, t, buttons, mouse, confetti, message):
     match.draw(surf, t)
     dim = pygame.Surface((VW, VH), pygame.SRCALPHA)
