@@ -7,6 +7,7 @@ silently degrades to a no-op so the game never crashes on sound.
 """
 
 import array
+import math
 import random
 
 import pygame
@@ -43,6 +44,20 @@ def _noise(ms, vol=0.2):
     return _seq(ms, fn, vol)
 
 
+def _boing(f0, f1, ms, wobble, vol):
+    """Cartoon spring: a sine sweep with vibrato that dies away quickly."""
+    state = {"phase": 0.0, "wob": 0.0}
+
+    def fn(t):
+        freq = f0 + (f1 - f0) * t
+        state["wob"] += 2.0 * math.pi * wobble / RATE
+        freq *= 1.0 + 0.22 * math.sin(state["wob"])
+        state["phase"] += freq / RATE
+        return math.sin(state["phase"] * 2.0 * math.pi) * (1.0 - t) ** 1.2
+
+    return _seq(ms, fn, vol)
+
+
 def _mix(*tracks):
     n = max(len(t) for t in tracks)
     out = array.array("h", bytes(2 * n))
@@ -66,7 +81,7 @@ def _jingle():
 
 
 class Sfx:
-    """Retro blips: shoot, hit, wall, bounce, countdown tick, win jingle."""
+    """Retro blips and boings: shoot, hit, wall boings, tick, win jingle."""
 
     def __init__(self):
         self.enabled = False
@@ -82,6 +97,10 @@ class Sfx:
             "hit": _mix(_noise(150, vol=0.3), _square(280, 940, 120, vol=0.2)),
             "wall": _mix(_noise(40, vol=0.07)),
             "bounce": _mix(_square(180, 160, 40, vol=0.06)),
+            # rubber wall boings - two pitches so repeats don't sound canned
+            "boing": [_boing(560, 150, 150, 30.0, vol=0.11),
+                      _boing(470, 130, 165, 24.0, vol=0.11)],
+            "boing_low": _boing(300, 60, 260, 18.0, vol=0.16),
             "tick": _mix(_square(660, 660, 80, vol=0.13)),
             "start": _mix(_square(440, 880, 160, vol=0.15)),
             "select": _mix(_square(500, 500, 45, vol=0.09)),
@@ -89,14 +108,21 @@ class Sfx:
         }
         for name, data in raw.items():
             try:
-                self.sounds[name] = pygame.mixer.Sound(buffer=data.tobytes())
+                if isinstance(data, list):
+                    self.sounds[name] = [pygame.mixer.Sound(buffer=d.tobytes())
+                                         for d in data]
+                else:
+                    self.sounds[name] = pygame.mixer.Sound(buffer=data.tobytes())
             except Exception:
                 self.enabled = False
                 return
 
     def play(self, name):
         if self.enabled and name in self.sounds:
+            sound = self.sounds[name]
             try:
-                self.sounds[name].play()
+                if isinstance(sound, list):      # pitch variants, e.g. boings
+                    sound = random.choice(sound)
+                sound.play()
             except Exception:
                 pass

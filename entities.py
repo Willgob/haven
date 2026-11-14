@@ -9,9 +9,9 @@ from settings import (
     ARENA_L, ARENA_R, BULLET_LIFETIME, BULLET_MAX_BOUNCES, BULLET_SPEED,
     BULLET_Y_OFFSET, CONTROLS, CPU_AIM_ERROR, CPU_COOLDOWN, CPU_FIRE_WINDOW,
     CPU_LAPSE, CPU_LEAD, GUN_LEN, MUZZLE_DIST, PLAY_BOTTOM, PLAY_TOP,
-    PLAYER_SPEED, POP_LIFE, SHOT_COOLDOWN, TARGET_DARK, BULLET_CAP,
-    UI_LINE, UI_MID, TARGET_BODY, TARGET_LIGHT, TARGET_CORE, tier_for_size,
-    P1_COLORS, P2_COLORS,
+    PLAYER_SPEED, POP_LIFE, RIPPLE_TTL, SHOT_COOLDOWN, TARGET_DARK,
+    BULLET_CAP, UI_LINE, UI_MID, TARGET_BODY, TARGET_LIGHT, TARGET_CORE,
+    tier_for_size, P1_COLORS, P2_COLORS,
 )
 from pixel_font import draw_text
 
@@ -327,3 +327,29 @@ class ScorePop:
             return
         y = self.y0 - self.t * 16
         draw_text(surf, self.text, (self.x + dx, y + dy), self.color, 1, "center")
+
+
+class Ripple:
+    """Expanding diamond ring where something thumps the rubber walls."""
+
+    __slots__ = ("x", "y", "life", "max_life", "colors")
+
+    def __init__(self, x, y, colors, life=RIPPLE_TTL):
+        self.x = x
+        self.y = y
+        self.life = life
+        self.max_life = life
+        self.colors = colors
+
+    def update(self, dt):
+        self.life -= dt
+        return self.life > 0.0
+
+    def draw(self, surf, dx=0, dy=0):
+        frac = self.life / self.max_life
+        color = self.colors[0] if frac > 0.5 else self.colors[1]
+        cx, cy = int(self.x) + dx, int(self.y) + dy
+        radius = max(1, int(2.0 + (1.0 - frac) * 7.0))   # grows as it fades
+        points = ((cx + radius, cy), (cx, cy + radius),
+                  (cx - radius, cy), (cx, cy - radius))
+        pygame.draw.polygon(surf, color, points, 1)

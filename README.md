@@ -9,8 +9,10 @@ Both players gun for the same energy core bouncing around the middle of the
 arena. It never stops moving: it ricochets off the boundaries, gets smaller and
 faster as the match progresses, and bounces back hard every time it's hit.
 Smaller targets score more — the tiny end-game core is worth 10 points a hit.
-Highest score when the timer hits zero wins. Missed shots ricochet off the back
-wall and come back around, so keep trying.
+**Banked shots pay double or triple**: a bullet that ricochets off a wall
+before it hits multiplies the tier — one bounce scores ×2 ("BANK SHOT!"), two
+bounces ×3 ("DOUBLE BANK!"). Missed shots ricochet off the back wall and come
+back around, so keep trying.
 
 ### Winning
 
@@ -58,7 +60,12 @@ The soundtrack is procedural chiptune, generated in code at startup (no audio
 files): a bouncy menu loop, a driving gameplay loop that switches to a
 double-time "hurry" variant in the final 10 seconds, a low-pass muffled mix
 while paused, and a calm victory loop on the results screen. Sound effects are
-synthesized square/noise blips.
+synthesized square/noise blips, plus cartoon-spring "boing" waves that fire
+every time a bullet ricochets or the target gets knocked back.
+
+The arena itself is rubber: stitched bumper walls with gold spring pads in the
+corners, and every impact — bullet ricochet or target hit — sends an expanding
+ripple ring through the wall.
 
 ## Tech notes
 

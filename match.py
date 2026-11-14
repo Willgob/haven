@@ -8,11 +8,15 @@ import pygame
 from settings import (
     HUD_H, MATCH_TIME, HURRY_AT, MSGS, MSG_TIMES, PLAY_TOP, PLAY_BOTTOM,
     P1_X, P2_X, P1_COLORS, P2_COLORS, TARGET_ZONE, VW,
+    RUBBER_DARK, RUBBER_MID, RUBBER_LIGHT,
+    TARGET_DARK, TARGET_LIGHT,
     UI_DARK, UI_MID, UI_LINE, WHITE, GRAY, GOLD, RED,
     target_size, target_speed, tier_for_size,
 )
 from pixel_font import draw_text, text_width
-from entities import Bullet, Particle, Player, ScorePop, Target, point_seg_dist
+from entities import (
+    Bullet, Particle, Player, Ripple, ScorePop, Target, point_seg_dist,
+)
 
 
 class Match:
@@ -28,6 +32,7 @@ class Match:
         self.bullets = []
         self.particles = []
         self.pops = []
+        self.ripples = []
         self.timer = MATCH_TIME
         self.elapsed = 0.0
         self.msg_idx = 0
@@ -94,16 +99,21 @@ class Match:
 
         for bullet in self.bullets:
             event = bullet.update(dt)
-            if event in ("wall", "fizzle"):
+            if event == "wall":
                 colors = P1_COLORS if bullet.owner == "p1" else P2_COLORS
                 self.wall_puff(bullet.x, bullet.y, colors["light"])
-                self.sfx.play("wall")
+                self.ripples.append(
+                    Ripple(bullet.x, bullet.y, (colors["light"], colors["shade"])))
+                self.sfx.play("boing")
+            elif event == "fizzle":
+                self.wall_puff(bullet.x, bullet.y, GRAY)
         self._collisions()
         self.bullets = [b for b in self.bullets if b.alive]
 
         self.target.update(dt, self.elapsed)
         self.particles = [p for p in self.particles if p.update(dt)]
         self.pops = [p for p in self.pops if p.update(dt)]
+        self.ripples = [r for r in self.ripples if r.update(dt)]
         self.banner_t = max(0.0, self.banner_t - dt)
         self.shake = max(0.0, self.shake - dt * 9.0)
 
@@ -124,15 +134,26 @@ class Match:
                 continue
             if point_seg_dist(target.x, target.y, bullet.px, bullet.py,
                               bullet.x, bullet.y) <= reach:
-                points, _label, _color = target.hit(bullet.x)
+                base_points, _label, _color = target.hit(bullet.x)
+                # banked shots pay: every wall bounce multiplies the tier
+                points = base_points * (1 + bullet.bounces)
                 scorer = self.p1 if bullet.owner == "p1" else self.p2
                 scorer.score += points
                 self.pops.append(ScorePop(bullet.x, bullet.y - 6, f"+{points}",
                                           scorer.colors["light"]))
+                if bullet.bounces == 1:
+                    self.pops.append(ScorePop(bullet.x, bullet.y - 13,
+                                              "BANK SHOT!", GOLD))
+                elif bullet.bounces >= 2:
+                    self.pops.append(ScorePop(bullet.x, bullet.y - 13,
+                                              "DOUBLE BANK!", GOLD))
                 self.explosion(bullet.x, bullet.y,
                                (WHITE, scorer.colors["body"], scorer.colors["light"]))
+                self.ripples.append(Ripple(bullet.x, bullet.y,
+                                           (TARGET_LIGHT, TARGET_DARK), 0.34))
                 self.shake = 2.2
                 self.sfx.play("hit")
+                self.sfx.play("boing_low")
                 bullet.alive = False
                 if self.sudden_death:
                     self._finish()
@@ -171,6 +192,8 @@ class Match:
         for pop in self.pops:
             pop.draw(surf, sdx, sdy)
         self._draw_walls(surf)
+        for ripple in self.ripples:
+            ripple.draw(surf, sdx, sdy)
         self._draw_banner(surf)
         self._draw_hud(surf, t)
         surf.blit(self.assets["scanlines"], (0, 0))
@@ -182,11 +205,28 @@ class Match:
             surf.fill((52, 60, 104), (zone.right - 1 + dx, y, 1, 2))
 
     def _draw_walls(self, surf):
-        pygame.draw.rect(surf, (66, 74, 126), (0, HUD_H, VW, 2))
-        pygame.draw.rect(surf, (40, 46, 84), (0, HUD_H + 2, VW, 1))
-        pygame.draw.rect(surf, (66, 74, 126), (0, PLAY_BOTTOM + 1, VW, 2))
-        pygame.draw.rect(surf, (66, 74, 126), (0, HUD_H, 2, 153))
-        pygame.draw.rect(surf, (66, 74, 126), (VW - 2, HUD_H, 2, 153))
+        # rubber bumper walls: base strips, stitching, corner bumper pads
+        pygame.draw.rect(surf, RUBBER_MID, (0, HUD_H, VW, 2))
+        pygame.draw.rect(surf, RUBBER_DARK, (0, HUD_H + 2, VW, 1))
+        pygame.draw.rect(surf, RUBBER_MID, (0, PLAY_BOTTOM + 1, VW, 2))
+        pygame.draw.rect(surf, RUBBER_MID, (0, HUD_H, 2, 153))
+        pygame.draw.rect(surf, RUBBER_MID, (VW - 2, HUD_H, 2, 153))
+        for y in range(HUD_H + 3, PLAY_BOTTOM + 1, 5):     # stitching
+            surf.fill(RUBBER_LIGHT, (1, y, 1, 1))
+            surf.fill(RUBBER_LIGHT, (VW - 2, y, 1, 1))
+        for x in range(4, VW - 4, 5):
+            surf.fill(RUBBER_LIGHT, (x, HUD_H + 1, 1, 1))
+            surf.fill(RUBBER_LIGHT, (x, PLAY_BOTTOM + 1, 1, 1))
+        self._bumper_pad(surf, 2, HUD_H + 2)
+        self._bumper_pad(surf, VW - 6, HUD_H + 2)
+        self._bumper_pad(surf, 2, PLAY_BOTTOM - 2)
+        self._bumper_pad(surf, VW - 6, PLAY_BOTTOM - 2)
+
+    def _bumper_pad(self, surf, x, y):
+        """Corner pad: rubber block with a gold spring rivet."""
+        pygame.draw.rect(surf, RUBBER_DARK, (x, y, 4, 4))
+        pygame.draw.rect(surf, RUBBER_LIGHT, (x, y, 4, 4), 1)
+        pygame.draw.rect(surf, GOLD, (x + 1, y + 1, 2, 2))
 
     def _draw_banner(self, surf):
         if self.banner_t <= 0.0:

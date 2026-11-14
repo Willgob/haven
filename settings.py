@@ -41,7 +41,8 @@ BULLET_Y_OFFSET = 2          # bullet row relative to player center
 SHOT_COOLDOWN = 0.33
 BULLET_SPEED = 150.0
 BULLET_LIFETIME = 3.2        # bullets ricochet for a while, then fizzle out
-BULLET_MAX_BOUNCES = 2       # missed shots bounce back - keep trying!
+BULLET_MAX_BOUNCES = 2       # missed shots bounce back - and banked shots
+                             # score x2 (1 bounce) / x3 (2 bounces)!
 BULLET_CAP = 24              # safety cap on simultaneous projectiles
 
 # --- target ----------------------------------------------------------------------
@@ -59,6 +60,7 @@ TIER_TABLE = (
 )
 
 POP_LIFE = 0.9               # floating score popup lifetime
+RIPPLE_TTL = 0.28            # wall-impact ripple ring lifetime
 
 # --- CPU opponent (solo mode) -------------------------------------------------
 CPU_LEAD = 0.65              # how far ahead of the target's motion the CPU aims
@@ -103,6 +105,11 @@ TARGET_BODY = (236, 76, 118)
 TARGET_LIGHT = (255, 176, 208)
 TARGET_DARK = (98, 26, 54)
 TARGET_CORE = (255, 242, 250)
+
+# rubber bumper walls (the whole arena is a trampoline)
+RUBBER_DARK = (40, 46, 84)
+RUBBER_MID = (66, 74, 126)
+RUBBER_LIGHT = (108, 120, 176)
 
 # --- input ---------------------------------------------------------------------------
 CONTROLS = {
