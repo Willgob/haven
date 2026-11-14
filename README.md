@@ -1,6 +1,6 @@
 # Haven Sydney Project
 
-## BO U NCE BACK
+## BOUNCE BACK
 
 **BOUNCE BACK** is a two-player retro arcade shooter made with pygame-ce.
 You share an arena, chase one bouncing energy core, and have 60 seconds to
