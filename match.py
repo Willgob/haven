@@ -16,13 +16,14 @@ from entities import Bullet, Particle, Player, ScorePop, Target, point_seg_dist
 
 
 class Match:
-    def __init__(self, assets, sfx):
+    def __init__(self, assets, sfx, mode="versus"):
         self.assets = assets
         self.sfx = sfx
+        self.mode = mode                            # "solo" (vs CPU) | "versus"
         self.zone = pygame.Rect(TARGET_ZONE)
         mid_y = (PLAY_TOP + PLAY_BOTTOM) / 2
         self.p1 = Player("p1", P1_X, mid_y, assets)
-        self.p2 = Player("p2", P2_X, mid_y, assets)
+        self.p2 = Player("p2", P2_X, mid_y, assets, is_cpu=(mode == "solo"))
         self.target = Target(self.zone, target_size, target_speed, sfx, assets["targets"])
         self.bullets = []
         self.particles = []
@@ -37,6 +38,8 @@ class Match:
         self.banner_t = 0.0
         self.shake = 0.0
         self.over = False
+        self.sudden_death = False                   # tie at 0:00 -> first score wins
+        self.sd_won = False
         self.winner = 0  # 1 = player 1, 2 = player 2, 0 = draw
 
     # ----------------------------------------------------------------- helpers
@@ -84,7 +87,10 @@ class Match:
             self.sfx.play("tick")
 
         self.p1.update(dt, held, self)
-        self.p2.update(dt, held, self)
+        if self.mode == "solo":
+            self.p2.update_cpu(dt, self)
+        else:
+            self.p2.update(dt, held, self)
 
         for bullet in self.bullets:
             event = bullet.update(dt)
@@ -101,8 +107,14 @@ class Match:
         self.banner_t = max(0.0, self.banner_t - dt)
         self.shake = max(0.0, self.shake - dt * 9.0)
 
-        if self.timer <= 0.0:
-            self._finish()
+        if self.timer <= 0.0001 and not self.sudden_death:
+            if self.p1.score == self.p2.score:
+                # nobody has the most points yet - keep playing until someone does
+                self.sudden_death = True
+                self.show_banner("SUDDEN DEATH - FIRST SCORE WINS!", RED, 3.0)
+                self.sfx.play("start")
+            else:
+                self._finish()
 
     def _collisions(self):
         target = self.target
@@ -122,9 +134,13 @@ class Match:
                 self.shake = 2.2
                 self.sfx.play("hit")
                 bullet.alive = False
+                if self.sudden_death:
+                    self._finish()
+                    break
 
     def _finish(self):
         self.over = True
+        self.sd_won = self.sudden_death
         self.banner_t = 0.0
         if self.p1.score > self.p2.score:
             self.winner = 1
@@ -188,11 +204,21 @@ class Match:
         pygame.draw.rect(surf, UI_MID, (0, HUD_H - 1, VW, 1))
         draw_text(surf, "P1", (6, 4), P1_COLORS["body"], 1)
         draw_text(surf, f"{self.p1.score:02d}", (6, 11), P1_COLORS["light"], 2)
-        draw_text(surf, "P2", (VW - 6, 4), P2_COLORS["shade"], 1, "right")
+        p2_label = "CPU" if self.mode == "solo" else "P2"
+        draw_text(surf, p2_label, (VW - 6, 4), P2_COLORS["shade"], 1, "right")
         draw_text(surf, f"{self.p2.score:02d}", (VW - 6, 11), P2_COLORS["light"], 2, "right")
-        seconds = int(math.ceil(self.timer))
-        minutes, secs = divmod(seconds, 60)
-        color = RED if (self.timer <= HURRY_AT and int(t * 4) % 2 == 0) else WHITE
-        draw_text(surf, f"{minutes}:{secs:02d}", (VW // 2, 3), color, 2, "center")
-        points, name, tier_color = tier_for_size(target_size(self.elapsed))
-        draw_text(surf, f"TARGET {name} +{points}", (VW // 2, 16), tier_color, 1, "center")
+        if self.p1.score > self.p2.score:          # who has the most points
+            draw_text(surf, ">", (24, 13), P1_COLORS["light"], 1)
+        elif self.p2.score > self.p1.score:
+            draw_text(surf, "<", (VW - 24, 13), P2_COLORS["light"], 1, "right")
+        if self.sudden_death:
+            if int(t * 4) % 2 == 0:
+                draw_text(surf, "SD", (VW // 2, 3), RED, 2, "center")
+            draw_text(surf, "FIRST SCORE WINS", (VW // 2, 16), GOLD, 1, "center")
+        else:
+            seconds = int(math.ceil(self.timer))
+            minutes, secs = divmod(seconds, 60)
+            color = RED if (self.timer <= HURRY_AT and int(t * 4) % 2 == 0) else WHITE
+            draw_text(surf, f"{minutes}:{secs:02d}", (VW // 2, 3), color, 2, "center")
+            points, name, tier_color = tier_for_size(target_size(self.elapsed))
+            draw_text(surf, f"TARGET {name} +{points}", (VW // 2, 16), tier_color, 1, "center")

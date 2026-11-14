@@ -60,6 +60,13 @@ TIER_TABLE = (
 
 POP_LIFE = 0.9               # floating score popup lifetime
 
+# --- CPU opponent (solo mode) -------------------------------------------------
+CPU_LEAD = 0.65              # how far ahead of the target's motion the CPU aims
+CPU_AIM_ERROR = 8.0          # wandering aim error in pixels
+CPU_FIRE_WINDOW = 2.4        # fires when its prediction lines up within this
+CPU_LAPSE = 0.3              # chance per re-aim to wander badly for a moment
+CPU_COOLDOWN = 0.55          # the CPU shoots slower than a human can
+
 # --- encouragement -----------------------------------------------------------------
 MSG_TIMES = (15.0, 30.0, 45.0)
 MSGS = ("KEEP FIRING!", "STAY SHARP!", "BOUNCE BACK!")

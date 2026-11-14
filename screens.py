@@ -49,7 +49,7 @@ def draw_menu(surf, assets, t, demo_target, buttons, mouse):
     draw_text(surf, "BOUNCE BACK", (x0 + 2, ty + 2), (6, 7, 16), 4)
     draw_text(surf, "BOUNCE", (x0, ty), P1_COLORS["light"], 4)
     draw_text(surf, "BACK", (x0 + w1, ty), P2_COLORS["light"], 4)
-    draw_text(surf, "PIXEL ARCADE - TWO PLAYER SHOWDOWN", (VW // 2, 51), GRAY, 1, "center")
+    draw_text(surf, "PIXEL ARCADE - SOLO OR TWO PLAYER SHOWDOWN", (VW // 2, 51), GRAY, 1, "center")
 
     panel = pygame.Rect(30, 58, 260, 52)
     pygame.draw.rect(surf, UI_DARK, panel)
@@ -64,8 +64,8 @@ def draw_menu(surf, assets, t, demo_target, buttons, mouse):
 
     for button in buttons:
         button.draw(surf, mouse)
-    draw_text(surf, "CLICK OR PRESS ENTER", (VW // 2, 143), GRAY, 1, "center")
-    draw_text(surf, "ESC QUITS", (VW // 2, 156), GRAY, 1, "center")
+    draw_text(surf, "CLICK OR PRESS 1 / 2", (VW // 2, 158), GRAY, 1, "center")
+    draw_text(surf, "ESC QUITS", (VW // 2, 168), GRAY, 1, "center")
 
 
 # --------------------------------------------------------------------- pause
@@ -93,18 +93,28 @@ def draw_results(surf, match, t, buttons, mouse, confetti, message):
     for bit in confetti:
         pygame.draw.rect(surf, bit["c"], (int(bit["x"]), int(bit["y"]), 1, 1))
 
-    if match.winner == 1:
-        title, color = "PLAYER 1 WINS!", P1_COLORS["light"]
-    elif match.winner == 2:
-        title, color = "PLAYER 2 WINS!", P2_COLORS["light"]
+    if match.mode == "solo":
+        if match.winner == 1:
+            title, color = "YOU WIN!", P1_COLORS["light"]
+        elif match.winner == 2:
+            title, color = "CPU WINS!", P2_COLORS["light"]
+        else:
+            title, color = "DRAW MATCH!", GOLD
+        left_label, right_label = "YOU", "CPU"
     else:
-        title, color = "DRAW MATCH!", GOLD
+        if match.winner == 1:
+            title, color = "PLAYER 1 WINS!", P1_COLORS["light"]
+        elif match.winner == 2:
+            title, color = "PLAYER 2 WINS!", P2_COLORS["light"]
+        else:
+            title, color = "DRAW MATCH!", GOLD
+        left_label, right_label = "P1", "P2"
     draw_text(surf, title, (VW // 2 + 2, 42), (6, 7, 16), 3, "center")
     draw_text(surf, title, (VW // 2, 40), color, 3, "center")
 
-    draw_text(surf, f"P1 {match.p1.score:02d}", (150, 68), P1_COLORS["light"], 2, "right")
+    draw_text(surf, f"{left_label} {match.p1.score:02d}", (150, 68), P1_COLORS["light"], 2, "right")
     draw_text(surf, "-", (160, 68), WHITE, 2, "center")
-    draw_text(surf, f"{match.p2.score:02d} P2", (170, 68), P2_COLORS["light"], 2, "left")
+    draw_text(surf, f"{match.p2.score:02d} {right_label}", (170, 68), P2_COLORS["light"], 2, "left")
 
     draw_text(surf, message, (VW // 2, 92), GOLD, 1, "center")
     for button in buttons:

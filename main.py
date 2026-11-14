@@ -18,6 +18,7 @@ from settings import (
 )
 from pixel_art import build_assets
 from sfx import Sfx
+from music import Music
 from entities import Target
 from match import Match
 from screens import Button, draw_menu, draw_pause, draw_results
@@ -33,8 +34,10 @@ class Game:
         self.virtual = pygame.Surface((VW, VH))
         self.assets = build_assets()
         self.sfx = Sfx()
+        self.music = Music()
         self.clock = pygame.time.Clock()
         self.state = "menu"
+        self.mode = "versus"
         self.match = None
         self.held = set()
         self.t = 0.0
@@ -48,7 +51,10 @@ class Game:
 
     # ---------------------------------------------------------------- setup
     def _build_buttons(self):
-        menu = [Button(160, 128, 104, 20, "PLAY", GOLD, 2, "play")]
+        menu = [
+            Button(160, 122, 128, 18, "1P - VS CPU", GREEN, 2, "solo"),
+            Button(160, 144, 128, 18, "2P - VERSUS", GOLD, 2, "versus"),
+        ]
         pause = [
             Button(160, 82, 116, 16, "RESUME", GREEN, 2, "resume"),
             Button(160, 102, 116, 16, "RESTART", GOLD, 2, "restart"),
@@ -61,14 +67,15 @@ class Game:
         return {"menu": menu, "pause": pause, "results": results}
 
     # ------------------------------------------------------------- transitions
-    def start_match(self):
-        self.match = Match(self.assets, self.sfx)
+    def start_match(self, mode=None):
+        self.mode = mode or self.mode
+        self.match = Match(self.assets, self.sfx, self.mode)
         self.state = "playing"
         self.sfx.play("start")
 
     def _button_action(self, action):
-        if action == "play" or action == "restart":
-            self.start_match()
+        if action in ("solo", "versus", "restart"):
+            self.start_match(action if action in ("solo", "versus") else None)
         elif action == "resume":
             self.state = "playing"
         elif action == "menu":
@@ -76,7 +83,10 @@ class Game:
 
     def _enter_results(self):
         self.state = "results"
-        self.result_msg = random.choice(RESULT_MSGS)
+        if self.match.sd_won:
+            self.result_msg = "SETTLED IN SUDDEN DEATH!"
+        else:
+            self.result_msg = random.choice(RESULT_MSGS)
         palette = (
             self.assets["players"]["p1"]["colors"]["light"],
             self.assets["players"]["p2"]["colors"]["light"],
@@ -88,6 +98,18 @@ class Game:
              "c": random.choice(palette)}
             for _ in range(46)
         ]
+
+    # ---------------------------------------------------------------- music
+    def _sync_music(self):
+        """Keep the soundtrack on the right loop for whatever is happening."""
+        if self.state == "menu":
+            self.music.play("menu")
+        elif self.state == "playing":
+            self.music.play("hurry" if self.match.hurry else "game")
+        elif self.state == "paused":
+            self.music.play("pause")
+        else:
+            self.music.play("results")
 
     # ------------------------------------------------------------------ events
     def handle_event(self, event):
@@ -122,8 +144,10 @@ class Game:
 
     def _keydown(self, key):
         if self.state == "menu":
-            if key in (pygame.K_RETURN, pygame.K_SPACE):
-                self.start_match()
+            if key == pygame.K_1:
+                self.start_match("solo")
+            elif key in (pygame.K_2, pygame.K_RETURN, pygame.K_SPACE):
+                self.start_match("versus")
             elif key == pygame.K_ESCAPE:
                 self.running = False
         elif self.state == "playing":
@@ -159,6 +183,7 @@ class Game:
                 if bit["y"] > VH:
                     bit["y"] = -2
                     bit["x"] = random.uniform(0, VW)
+        self._sync_music()
 
     # -------------------------------------------------------------------- draw
     def draw(self):

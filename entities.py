@@ -7,7 +7,8 @@ import pygame
 
 from settings import (
     ARENA_L, ARENA_R, BULLET_LIFETIME, BULLET_MAX_BOUNCES, BULLET_SPEED,
-    BULLET_Y_OFFSET, CONTROLS, GUN_LEN, MUZZLE_DIST, PLAY_BOTTOM, PLAY_TOP,
+    BULLET_Y_OFFSET, CONTROLS, CPU_AIM_ERROR, CPU_COOLDOWN, CPU_FIRE_WINDOW,
+    CPU_LAPSE, CPU_LEAD, GUN_LEN, MUZZLE_DIST, PLAY_BOTTOM, PLAY_TOP,
     PLAYER_SPEED, POP_LIFE, SHOT_COOLDOWN, TARGET_DARK, BULLET_CAP,
     UI_LINE, UI_MID, TARGET_BODY, TARGET_LIGHT, TARGET_CORE, tier_for_size,
     P1_COLORS, P2_COLORS,
@@ -33,7 +34,7 @@ def point_seg_dist(px, py, ax, ay, bx, by):
 class Player:
     """A gunner on one side of the arena. Moves vertically, fires horizontally."""
 
-    def __init__(self, pid, x, y, assets):
+    def __init__(self, pid, x, y, assets, is_cpu=False):
         self.pid = pid
         self.face = 1 if pid == "p1" else -1
         self.assets = assets["players"][pid]
@@ -45,9 +46,19 @@ class Player:
         self.recoil = 0.0
         self.anim = 0.0
         self.moving = False
+        self.is_cpu = is_cpu
+        self.aim_error = 0.0
+        self.aim_t = 0.0
 
     def muzzle(self):
         return (self.x + self.face * MUZZLE_DIST, self.y + BULLET_Y_OFFSET)
+
+    def fire(self, match):
+        if self.cooldown > 0.0 or len(match.bullets) >= BULLET_CAP:
+            return
+        self.cooldown = CPU_COOLDOWN if self.is_cpu else SHOT_COOLDOWN
+        self.recoil = 0.1
+        match.spawn_bullet(self)
 
     def update(self, dt, held, match):
         up_key, down_key, shoot_key = CONTROLS[self.pid]
@@ -62,10 +73,37 @@ class Player:
         self.cooldown = max(0.0, self.cooldown - dt)
         self.recoil = max(0.0, self.recoil - dt)
         self.anim += dt * (10.0 if self.moving else 3.0)
-        if held(shoot_key) and self.cooldown <= 0.0 and len(match.bullets) < BULLET_CAP:
-            self.cooldown = SHOT_COOLDOWN
-            self.recoil = 0.1
-            match.spawn_bullet(self)
+        if held(shoot_key):
+            self.fire(match)
+
+    def update_cpu(self, dt, match):
+        """Solo mode opponent: leads the target's motion with a wandering aim."""
+        target = match.target
+        dx = max(30.0, abs(target.x - self.x))
+        travel = dx / BULLET_SPEED
+        predict_y = target.y + target.vy * travel * CPU_LEAD + self.aim_error
+        diff = predict_y - self.y
+        if abs(diff) > 1.5:
+            self.y += clamp(diff, -1.0, 1.0) * PLAYER_SPEED * dt
+            self.moving = True
+        else:
+            self.moving = False
+        self.y = clamp(self.y, PLAY_TOP + 7, PLAY_BOTTOM - 7)
+        self.aim_t -= dt
+        if self.aim_t <= 0.0:
+            self.aim_t = random.uniform(0.35, 0.9)
+            # the faster the match gets, the sloppier the CPU's aim becomes
+            pressure = 1.0 + match.elapsed / 40.0
+            if random.random() < CPU_LAPSE:
+                span = CPU_AIM_ERROR * 3 * pressure
+            else:
+                span = CPU_AIM_ERROR * pressure
+            self.aim_error = random.uniform(-span, span)
+        self.cooldown = max(0.0, self.cooldown - dt)
+        self.recoil = max(0.0, self.recoil - dt)
+        self.anim += dt * (10.0 if self.moving else 3.0)
+        if abs(predict_y - self.y) <= CPU_FIRE_WINDOW:
+            self.fire(match)
 
     def draw(self, surf, t, dx=0, dy=0):
         blink_on = int(t * 3.0) % 2 == 0
