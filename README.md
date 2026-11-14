@@ -28,7 +28,8 @@ the way off your own back wall and heads back out pays x6 (BOUNCE BACK!).
 Each wall bounce also refunds a little bullet lifetime, so banked shots can
 fly much farther than straight ones, and they visibly heat up with a trail
 as their multiplier grows. A hit landed just after the core bounces off an
-arena wall earns an extra REBOUND! bonus worth its base points.
+arena wall earns an extra REBOUND! bonus worth its base points. While a
+banked shot is in flight, its current multiplier is shown over the bullet.
 
 ## Winning
 

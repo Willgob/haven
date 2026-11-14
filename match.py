@@ -6,7 +6,7 @@ import random
 import pygame
 
 from settings import (
-    HUD_H, MATCH_TIME, HURRY_AT, BANK_LADDER, RETURN_MULT, MSGS, MSG_TIMES,
+    HUD_H, MATCH_TIME, HURRY_AT, BANK_LADDER, MSGS, MSG_TIMES,
     PLAY_TOP, PLAY_BOTTOM,
     P1_X, P2_X, P1_COLORS, P2_COLORS, TARGET_ZONE, VW,
     RUBBER_DARK, RUBBER_MID, RUBBER_LIGHT,
@@ -156,9 +156,7 @@ class Match:
     def _hit_points(self, bullet, base_points):
         """Bank ladder x back-wall return bonus, plus a flat rebound bonus."""
         bounces = min(bullet.bounces, len(BANK_LADDER) - 1)
-        points = base_points * BANK_LADDER[bounces]
-        if bullet.backed:
-            points *= RETURN_MULT
+        points = base_points * bullet.multiplier()
         if bounces >= 1:
             labels = {1: "BANK SHOT!", 2: "BOUNCE BACK!", 3: "TRIPLE BANK!"}
             self.pops.append(ScorePop(bullet.x, bullet.y - 13, labels[bounces],

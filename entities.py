@@ -6,12 +6,13 @@ import random
 import pygame
 
 from settings import (
-    ARENA_L, ARENA_R, BOUNCE_LIFE_BONUS, BULLET_LIFETIME, BULLET_MAX_BOUNCES,
-    BULLET_SPEED, BULLET_Y_OFFSET, CONTROLS, CPU_AIM_ERROR, CPU_COOLDOWN,
-    CPU_FIRE_WINDOW, CPU_LAPSE, CPU_LEAD, GUN_LEN, MUZZLE_DIST, PLAY_BOTTOM,
-    PLAY_TOP, PLAYER_SPEED, POP_LIFE, REBOUND_WINDOW, RIPPLE_TTL,
-    SHOT_COOLDOWN, TARGET_DARK, BULLET_CAP, UI_LINE, UI_MID, TARGET_BODY,
-    TARGET_LIGHT, TARGET_CORE, tier_for_size, P1_COLORS, P2_COLORS,
+    ARENA_L, ARENA_R, BANK_LADDER, BOUNCE_LIFE_BONUS, BULLET_LIFETIME,
+    BULLET_MAX_BOUNCES, BULLET_SPEED, BULLET_Y_OFFSET, CONTROLS,
+    CPU_AIM_ERROR, CPU_COOLDOWN, CPU_FIRE_WINDOW, CPU_LAPSE, CPU_LEAD,
+    GUN_LEN, MUZZLE_DIST, GOLD, PLAY_BOTTOM, PLAY_TOP, PLAYER_SPEED,
+    POP_LIFE, REBOUND_WINDOW, RETURN_MULT, RIPPLE_TTL, SHOT_COOLDOWN,
+    TARGET_DARK, BULLET_CAP, UI_LINE, UI_MID, TARGET_BODY, TARGET_LIGHT,
+    TARGET_CORE, tier_for_size, P1_COLORS, P2_COLORS,
 )
 from pixel_font import draw_text
 
@@ -188,6 +189,13 @@ class Bullet:
             self.alive = False
         return "wall"
 
+    def multiplier(self):
+        """Points multiplier this shot is carrying right now."""
+        mult = BANK_LADDER[min(self.bounces, len(BANK_LADDER) - 1)]
+        if self.backed:
+            mult *= RETURN_MULT
+        return mult
+
     def draw(self, surf, bundle, dx=0, dy=0):
         tier = min(self.bounces, 2)          # 0 normal, 1 hot, 2+ super
         if tier and self.trail:
@@ -203,6 +211,10 @@ class Bullet:
             frames = bundle["super"]
         frame = frames[int(self.anim * 22) % 2]
         surf.blit(frame, (int(self.x) - 2 + dx, int(self.y) - 1 + dy))
+        mult = self.multiplier()
+        if mult > 1:                 # live bank value over the bullet
+            draw_text(surf, f"X{mult}", (int(self.x) + dx, int(self.y) - 7 + dy),
+                      GOLD, 1, "center")
 
 
 class Target:
