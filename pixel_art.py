@@ -6,7 +6,7 @@ import random
 import pygame
 
 from settings import (
-    VH, VW, NAVY, P1_COLORS, P2_COLORS,
+    VH, VW, NAVY, WHITE, P1_COLORS, P2_COLORS,
     TARGET_BODY, TARGET_LIGHT, TARGET_DARK, TARGET_CORE,
 )
 
@@ -75,15 +75,25 @@ def _build_players():
 
 
 def _build_bullets():
+    """Normal bullets plus brighter hot variants that show the bank tier."""
     bullets = {}
     for pid, scheme in (("p1", P1_COLORS), ("p2", P2_COLORS)):
-        pal = {"d": scheme["shade"], "b": scheme["body"], "l": scheme["light"]}
-        f1 = _sheet(_BULLET_F1, pal)
-        f2 = _sheet(_BULLET_F2, pal)
-        if pid == "p2":
-            f1 = pygame.transform.flip(f1, True, False)
-            f2 = pygame.transform.flip(f2, True, False)
-        bullets[pid] = (f1, f2)
+        variants = (
+            {"d": scheme["shade"], "b": scheme["body"], "l": scheme["light"]},
+            {"d": scheme["body"], "b": scheme["light"], "l": WHITE},
+            {"d": scheme["light"], "b": WHITE, "l": WHITE},
+        )
+        built = []
+        for pal in variants:
+            f1 = _sheet(_BULLET_F1, pal)
+            f2 = _sheet(_BULLET_F2, pal)
+            if pid == "p2":
+                f1 = pygame.transform.flip(f1, True, False)
+                f2 = pygame.transform.flip(f2, True, False)
+            built.append((f1, f2))
+        bullets[pid] = {"frames": built[0], "hot": built[1], "super": built[2],
+                        "ramp": (scheme["shade"], scheme["body"],
+                                 scheme["light"])}
     return bullets
 
 

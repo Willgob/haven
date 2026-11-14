@@ -6,7 +6,8 @@ import random
 import pygame
 
 from settings import (
-    HUD_H, MATCH_TIME, HURRY_AT, MSGS, MSG_TIMES, PLAY_TOP, PLAY_BOTTOM,
+    HUD_H, MATCH_TIME, HURRY_AT, BANK_LADDER, RETURN_MULT, MSGS, MSG_TIMES,
+    PLAY_TOP, PLAY_BOTTOM,
     P1_X, P2_X, P1_COLORS, P2_COLORS, TARGET_ZONE, VW,
     RUBBER_DARK, RUBBER_MID, RUBBER_LIGHT,
     TARGET_DARK, TARGET_LIGHT,
@@ -135,18 +136,11 @@ class Match:
             if point_seg_dist(target.x, target.y, bullet.px, bullet.py,
                               bullet.x, bullet.y) <= reach:
                 base_points, _label, _color = target.hit(bullet.x)
-                # bank shots pay: each wall bounce multiplies the tier
-                points = base_points * (1 + bullet.bounces)
+                points = self._hit_points(bullet, base_points)
                 scorer = self.p1 if bullet.owner == "p1" else self.p2
                 scorer.score += points
                 self.pops.append(ScorePop(bullet.x, bullet.y - 6, f"+{points}",
                                           scorer.colors["light"]))
-                if bullet.bounces == 1:
-                    self.pops.append(ScorePop(bullet.x, bullet.y - 13,
-                                              "BANK SHOT!", GOLD))
-                elif bullet.bounces >= 2:
-                    self.pops.append(ScorePop(bullet.x, bullet.y - 13,
-                                              "DOUBLE BANK!", GOLD))
                 self.explosion(bullet.x, bullet.y,
                                (WHITE, scorer.colors["body"], scorer.colors["light"]))
                 self.ripples.append(Ripple(bullet.x, bullet.y,
@@ -158,6 +152,24 @@ class Match:
                 if self.sudden_death:
                     self._finish()
                     break
+
+    def _hit_points(self, bullet, base_points):
+        """Bank ladder x back-wall return bonus, plus a flat rebound bonus."""
+        bounces = min(bullet.bounces, len(BANK_LADDER) - 1)
+        points = base_points * BANK_LADDER[bounces]
+        if bullet.backed:
+            points *= RETURN_MULT
+        if bounces >= 1:
+            labels = {1: "BANK SHOT!", 2: "BOUNCE BACK!", 3: "TRIPLE BANK!"}
+            self.pops.append(ScorePop(bullet.x, bullet.y - 13, labels[bounces],
+                                      GOLD))
+            if bounces >= 2:
+                self.sfx.play("start")       # little flourish on the jackpots
+        if self.target.rebound > 0.0:
+            points += base_points            # core just bounced off a zone wall
+            self.pops.append(ScorePop(bullet.x, bullet.y - 20, "REBOUND!",
+                                      TARGET_LIGHT))
+        return points
 
     def _finish(self):
         self.over = True

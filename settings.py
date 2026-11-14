@@ -38,9 +38,20 @@ BULLET_Y_OFFSET = 2
 
 SHOT_COOLDOWN = 0.33
 BULLET_SPEED = 150.0
-BULLET_LIFETIME = 3.2        # bullets fizzle after this long
-BULLET_MAX_BOUNCES = 2       # wall bounces pay x2 / x3 on a hit (bank shots)
-BULLET_CAP = 24
+BULLET_LIFETIME = 3.2        # straight shots fizzle after this long
+BOUNCE_LIFE_BONUS = 1.5      # every wall bounce refunds this much lifetime
+BULLET_MAX_BOUNCES = 3       # a 4th wall bounce kills the bullet
+BULLET_CAP = 32
+
+# bank shots: wall bounces raise the multiplier (BANK_LADDER), and a bullet
+# that touched its shooter's back wall doubles it again. The jackpot is the
+# title shot: x3 ladder * x2 return = x6, the BOUNCE BACK!
+BANK_LADDER = (1, 2, 3, 5)   # points multiplier for 0/1/2/3 wall bounces
+RETURN_MULT = 2              # back-wall round trip bonus
+
+# rebound: hitting the core right after it bounced off a zone wall pays the
+# hit's base points again, on top of everything else
+REBOUND_WINDOW = 0.3
 
 # target
 TARGET_SIZE_START = 16.0     # diameter

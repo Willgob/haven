@@ -21,10 +21,14 @@ The smaller the core, the more it is worth:
 | Small       | 5      |
 | Tiny        | 10     |
 
-Shots can earn bonus points too. A bullet that bounces off a wall before
-hitting the core is a bank shot and scores double. Two wall bounces score
-triple. Missed shots keep ricocheting around the arena, so a shot that looks
-lost may still come back and save the day.
+Shots can earn bonus points too. Every wall bounce a bullet banks off raises
+its multiplier: one bounce pays double (BANK SHOT!), three bounces pay x5
+(TRIPLE BANK!). The jackpot is the title shot - a bullet that ricochets all
+the way off your own back wall and heads back out pays x6 (BOUNCE BACK!).
+Each wall bounce also refunds a little bullet lifetime, so banked shots can
+fly much farther than straight ones, and they visibly heat up with a trail
+as their multiplier grows. A hit landed just after the core bounces off an
+arena wall earns an extra REBOUND! bonus worth its base points.
 
 ## Winning
 

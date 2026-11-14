@@ -6,14 +6,16 @@ import random
 import pygame
 
 from settings import (
-    ARENA_L, ARENA_R, BULLET_LIFETIME, BULLET_MAX_BOUNCES, BULLET_SPEED,
-    BULLET_Y_OFFSET, CONTROLS, CPU_AIM_ERROR, CPU_COOLDOWN, CPU_FIRE_WINDOW,
-    CPU_LAPSE, CPU_LEAD, GUN_LEN, MUZZLE_DIST, PLAY_BOTTOM, PLAY_TOP,
-    PLAYER_SPEED, POP_LIFE, RIPPLE_TTL, SHOT_COOLDOWN, TARGET_DARK,
-    BULLET_CAP, UI_LINE, UI_MID, TARGET_BODY, TARGET_LIGHT, TARGET_CORE,
-    tier_for_size, P1_COLORS, P2_COLORS,
+    ARENA_L, ARENA_R, BOUNCE_LIFE_BONUS, BULLET_LIFETIME, BULLET_MAX_BOUNCES,
+    BULLET_SPEED, BULLET_Y_OFFSET, CONTROLS, CPU_AIM_ERROR, CPU_COOLDOWN,
+    CPU_FIRE_WINDOW, CPU_LAPSE, CPU_LEAD, GUN_LEN, MUZZLE_DIST, PLAY_BOTTOM,
+    PLAY_TOP, PLAYER_SPEED, POP_LIFE, REBOUND_WINDOW, RIPPLE_TTL,
+    SHOT_COOLDOWN, TARGET_DARK, BULLET_CAP, UI_LINE, UI_MID, TARGET_BODY,
+    TARGET_LIGHT, TARGET_CORE, tier_for_size, P1_COLORS, P2_COLORS,
 )
 from pixel_font import draw_text
+
+_TRAIL_KEEP = 6              # trail samples kept for hot banked bullets
 
 
 def clamp(value, lo, hi):
@@ -133,10 +135,16 @@ class Player:
 
 
 class Bullet:
-    """A pixel bolt that flies across the arena and ricochets off the walls."""
+    """A pixel bolt that flies across the arena and ricochets off the walls.
+
+    Every wall bounce refunds a little lifetime and raises the bank
+    multiplier. A bullet that touches its shooter's back wall and heads back
+    out again carries the BOUNCE BACK jackpot on its next hit.
+    """
 
     def __init__(self, owner, x, y, face):
         self.owner = owner
+        self.face = face
         self.px = float(x)
         self.py = float(y)
         self.x = float(x)
@@ -146,6 +154,8 @@ class Bullet:
         self.anim = 0.0
         self.life = 0.0
         self.bounces = 0
+        self.backed = False     # touched the shooter's back wall
+        self.trail = []         # recent positions, for the hot-bullet trail
 
     def update(self, dt):
         self.px, self.py = self.x, self.y
@@ -156,23 +166,41 @@ class Bullet:
             self.x = ARENA_L + 1
             self.vx = abs(self.vx)
             self.bounces += 1
+            self.backed = self.face > 0      # left wall is p1's back wall
             return self._end_or_bounce()
         if self.x >= ARENA_R - 1:
             self.x = ARENA_R - 1
             self.vx = -abs(self.vx)
             self.bounces += 1
+            self.backed = self.face < 0      # right wall is p2's back wall
             return self._end_or_bounce()
         if self.life > BULLET_LIFETIME:
             self.alive = False
             return "fizzle"
+        self.trail.append((self.x, self.y))
+        if len(self.trail) > _TRAIL_KEEP:
+            self.trail.pop(0)
         return None
 
     def _end_or_bounce(self):
+        self.life -= BOUNCE_LIFE_BONUS       # the bounce keeps it alive
         if self.bounces > BULLET_MAX_BOUNCES:
             self.alive = False
         return "wall"
 
-    def draw(self, surf, frames, dx=0, dy=0):
+    def draw(self, surf, bundle, dx=0, dy=0):
+        tier = min(self.bounces, 2)          # 0 normal, 1 hot, 2+ super
+        if tier and self.trail:
+            ramp = bundle["ramp"]
+            step = max(1, len(self.trail) // 3)
+            for i, (tx, ty) in enumerate(self.trail[::step][-3:]):
+                surf.fill(ramp[min(i, 2)], (int(tx) + dx, int(ty) + dy, 1, 1))
+        if tier == 0:
+            frames = bundle["frames"]
+        elif tier == 1:
+            frames = bundle["hot"]
+        else:
+            frames = bundle["super"]
         frame = frames[int(self.anim * 22) % 2]
         surf.blit(frame, (int(self.x) - 2 + dx, int(self.y) - 1 + dy))
 
@@ -195,6 +223,7 @@ class Target:
         self.vy = math.sin(angle) * self.base_speed
         self.flash = 0.0
         self.boost = 0.0
+        self.rebound = 0.0     # time left in the "just bounced off a wall" window
         self.impulse_t = random.uniform(2.5, 5.5)
 
     def radius(self):
@@ -209,6 +238,7 @@ class Target:
         self.base_speed = self.speed_fn(elapsed)
         self.boost = max(0.0, self.boost - dt)
         self.flash = max(0.0, self.flash - dt)
+        self.rebound = max(0.0, self.rebound - dt)
         speed = self.base_speed * (1.0 + 0.6 * self.boost)
         current = math.hypot(self.vx, self.vy)
         if current < 1e-6:
@@ -241,6 +271,7 @@ class Target:
             bounced = True
         if bounced:
             self._rotate(random.uniform(-0.14, 0.14))
+            self.rebound = REBOUND_WINDOW
             if self.sfx:
                 self.sfx.play("bounce")
         self.impulse_t -= dt
