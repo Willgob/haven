@@ -65,31 +65,27 @@ screen. You will see the mode select, instructions, live scoreboard, timer,
 target difficulty, winner announcement, final scores, confetti, and proper
 draw handling. There is also a pause overlay, all inside one shared arena.
 
-The menu plays `menu.mp3`, matches play `seels.mp3`, and the results screen
-plays the `victory.mp3` fanfare once. The in-game track keeps playing while
-the match is paused, and a sped-up mix kicks in for the final 10 seconds.
-Ricochets and target hits get their own square-wave, noise, and cartoon
-spring sound effects, generated in code.
+The soundtrack is procedural chiptune, generated in code at startup (no audio
+files): a bouncy menu loop, a driving gameplay loop that switches to a
+double-time "hurry" variant in the final 10 seconds, a low-pass muffled mix
+while paused, and a calm victory loop on the results screen. Sound effects are
+synthesized square/noise blips, plus cartoon-spring "boing" waves that fire
+every time a bullet ricochets or the target gets knocked back.
 
-The arena is designed to feel like a giant rubber bumper. It has stitched
-walls, gold spring pads in the corners, and a ripple effect whenever a bullet
-or the core hits a boundary.
+The arena itself is rubber: stitched bumper walls with gold spring pads in the
+corners, and every impact — bullet ricochet or target hit — sends an expanding
+ripple ring through the wall.
 
 ## Tech notes
 
-- The game draws to a 320×180 virtual screen and scales it up by 4 using
-  nearest-neighbour scaling. Everything stays intentionally pixelated.
-- Pixel art, text, and sound effects are generated in code. Music comes from
-  `assets/`: `menu.mp3` on the main menu, `seels.mp3` looped during matches
-  (it keeps playing while the match is paused, and speeds up for the final
-  10 seconds), and
-  `victory.mp3` played once on the results screen. If a file is missing, that
-  screen falls back to the built-in chiptune loop. No extra dependencies
-  beyond pygame-ce.
-- Music credit: `menu.mp3` is "Retro Platforming" by David Fesliyan
-  (fesliyanstudios.com).
-- Movement uses delta time with a safety clamp, and swept circle-to-segment
-  collision checks stop fast bullets from passing through the core.
+- The whole game renders to a 320×180 virtual screen scaled ×4 with
+  nearest-neighbour blitting — sprites, text and effects are genuinely
+  pixelated, not just smooth graphics with pixel-style text.
+- All pixel art is procedural (character maps and drawing routines baked once
+  at startup), text uses a hand-built 3×5 bitmap font, and music and sound
+  effects are synthesized in code — no asset files, no extra dependencies.
+- Frame-rate independent movement (delta time with a safety clamp) and swept
+  circle-vs-segment collisions so fast bullets never tunnel through the target.
 
 ## Run it
 
