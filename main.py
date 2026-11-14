@@ -32,7 +32,6 @@ while running:
             elif event.key == pygame.K_UP:
                 scroll_target -= scroll_speed
 
-    # fill the screen with a color to wipe away anything from last frame
     screen.fill("purple")
     screen.fill((0, 0, 0))
     sizes = [140 + i * 30 for i in range(5)]
